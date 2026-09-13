@@ -1,6 +1,6 @@
 # Planificación — Módulo 15: MEV & HFT Trading Infrastructure
 
-**Estado:** Fases **0–4** ✅ completadas. Fases **5–7** ⏳ pendientes.  
+**Estado:** Fases **0–5** ✅ completadas. Fases **6–7** ⏳ pendientes.  
 **Regla de avance:** cada fase requiere **autorización explícita** del responsable antes de empezar (*“autorizo Fase N”* o equivalente).
 
 ---
@@ -162,7 +162,7 @@ error ZeroAmount();
 | 2 | `AtomicArbitrageSolver` (unit + mocks) | ✅ Completada | ✅ Autorizada |
 | 3 | `BackrunExecutor` + tip coinbase | ✅ Completada | ✅ Autorizada |
 | 4 | `SandwichExecutor` (lab) + Unauthorized | ✅ Completada | ✅ Autorizada |
-| 5 | Revert-on-unprofitable + fuzz tip/slippage/volume | ⏳ Pendiente | ❌ |
+| 5 | Revert-on-unprofitable + fuzz tip/slippage/volume | ✅ Completada | ✅ Autorizada |
 | 6 | Fork mainnet + `SimulateBundle` | ⏳ Pendiente | ❌ |
 | 7 | Gas Yul vs Solidity + Deploy + NatSpec / SWC | ⏳ Pendiente | ❌ |
 
@@ -271,7 +271,7 @@ error ZeroAmount();
 
 ---
 
-### Fase 5 — Revert-on-unprofitable + fuzz
+### Fase 5 — Revert-on-unprofitable + fuzz ✅
 
 **Objetivo:** cumplir matriz de testing del `.cursorrules` del módulo.
 
@@ -282,6 +282,12 @@ error ZeroAmount();
 | Auth | Caller no autorizado → `UnauthorizedSearcher` |
 
 **Criterio de salida:** fuzz ≥ 1000; asserts de no-tip en revert.
+
+**Hecho (2026-09-13):**
+- `test/RevertOnUnprofitable.t.sol`: arb flat / price-move / minProfit alto; backrun sin imbalance; sandwich sin victim — todos con assert `builder.balance` sin tip.
+- `test/fuzz/Mev.fuzz.t.sol`: volumen+tip bps rentable; slippage alto sin tip; flat pools siempre `NegativeEV`; tip bps en path rentable (1000 runs c/u).
+- Auth ya cubierto en `Unauthorized.t.sol` (Fase 4).
+- **`forge test` → 64 PASS**.
 
 ---
 
@@ -330,10 +336,10 @@ error ZeroAmount();
 - [ ] Profit check **después** de trades y **antes** de considerar la tx exitosa; tip no queda pagado si revierte.
 - [ ] Solo searcher/relayer autorizado.
 - [ ] Sin floating pragma; NatSpec en APIs públicas.
-- [ ] Fuzz de tip, slippage y volúmenes.
-- [ ] Tests de revert-on-unprofitable sin bribe residual.
+- [x] Fuzz de tip, slippage y volúmenes.
+- [x] Tests de revert-on-unprofitable sin bribe residual.
 - [ ] (Fase 7) SWC-AUDIT + gas.
-- [ ] Nunca versionar claves privadas / keystores (ver `.gitignore`).
+- [x] Nunca versionar claves privadas / keystores (ver `.gitignore`).
 
 ---
 
@@ -353,20 +359,20 @@ error ZeroAmount();
 
 ## 11. Criterios de aceptación del módulo
 
-1. [ ] Compila con `pragma solidity 0.8.24`.
-2. [ ] Solvers atómicos: EV negativo → revert total.
-3. [ ] Tip a `block.coinbase` solo en path exitoso.
-4. [ ] Guard `UnauthorizedSearcher` en ejecución.
+1. [x] Compila con `pragma solidity 0.8.24`.
+2. [x] Solvers atómicos: EV negativo → revert total.
+3. [x] Tip a `block.coinbase` solo en path exitoso.
+4. [x] Guard `UnauthorizedSearcher` en ejecución.
 5. [ ] Fork test de arbitraje con imbalance simulado.
-6. [ ] Fuzz de tip %, slippage y volúmenes.
+6. [x] Fuzz de tip %, slippage y volúmenes.
 7. [ ] Gas profiling assembly vs Solidity.
-8. [ ] Custom errors + NatSpec.
+8. [x] Custom errors + NatSpec.
 9. [ ] `doc/SWC-AUDIT.md` sin vulnerabilidades en alcance v1.
 
 ---
 
 ## 12. Próximo paso
 
-Esperar autorización explícita: **“autorizo Fase 5”** para revert-on-unprofitable consolidado + fuzz tip/slippage/volume.
+Esperar autorización explícita: **“autorizo Fase 6”** para fork mainnet + `SimulateBundle.s.sol`.
 
 **Nota:** usar `~/.foundry/bin/forge` (o anteponer `$HOME/.foundry/bin` al `PATH`); el `forge` de nvm/npm no es Foundry.
