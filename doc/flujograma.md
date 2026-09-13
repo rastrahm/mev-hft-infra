@@ -209,4 +209,4 @@ flowchart LR
 ```
 
 **Gate:** no avanzar de fase sin *“autorizo Fase N”*. Detalle en [`planificacion.md`](./planificacion.md).  
-**Estado:** documentación de diseño lista; fases **0–7** pendientes de autorización.
+**Estado:** Fase **0** ✅. Fases **1–7** ⏳ pendientes de autorización.
