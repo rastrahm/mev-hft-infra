@@ -2,7 +2,7 @@
 
 Infraestructura de searcher MEV de baja latencia, bundles privados (Flashbots Auction) y solvers on-chain de arbitraje/backrun/sandwich atómicos. Solidity `0.8.24` + Foundry.
 
-**Estado:** Fases **0–1** ✅ (setup + libs). Fases **2–7** pendientes de autorización.
+**Estado:** Fases **0–2** ✅ (setup + libs + AtomicArbitrageSolver). Fases **3–7** pendientes de autorización.
 
 ## Docs
 
