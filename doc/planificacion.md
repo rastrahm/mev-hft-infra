@@ -1,6 +1,6 @@
 # Planificación — Módulo 15: MEV & HFT Trading Infrastructure
 
-**Estado:** Fases **0–5** ✅ completadas. Fases **6–7** ⏳ pendientes.  
+**Estado:** Fases **0–6** ✅ completadas. Fase **7** ⏳ pendiente.  
 **Regla de avance:** cada fase requiere **autorización explícita** del responsable antes de empezar (*“autorizo Fase N”* o equivalente).
 
 ---
@@ -163,7 +163,7 @@ error ZeroAmount();
 | 3 | `BackrunExecutor` + tip coinbase | ✅ Completada | ✅ Autorizada |
 | 4 | `SandwichExecutor` (lab) + Unauthorized | ✅ Completada | ✅ Autorizada |
 | 5 | Revert-on-unprofitable + fuzz tip/slippage/volume | ✅ Completada | ✅ Autorizada |
-| 6 | Fork mainnet + `SimulateBundle` | ⏳ Pendiente | ❌ |
+| 6 | Fork mainnet + `SimulateBundle` | ✅ Completada | ✅ Autorizada |
 | 7 | Gas Yul vs Solidity + Deploy + NatSpec / SWC | ⏳ Pendiente | ❌ |
 
 ---
@@ -291,7 +291,7 @@ error ZeroAmount();
 
 ---
 
-### Fase 6 — Fork + SimulateBundle
+### Fase 6 — Fork + SimulateBundle ✅
 
 **Objetivo:** validar contra mainnet fork con imbalance simulado.
 
@@ -300,6 +300,11 @@ error ZeroAmount();
 3. Documentar formato Flashbots (`blockNumber`, `txs[]`) a alto nivel en script comments.
 
 **Criterio de salida:** fork pass opcional; script documentado.
+
+**Hecho (2026-09-13):**
+- `test/fork/Arbitrage.fork.t.sol`: arb+tip, NegativeEV sin tip, backrun post-victim; `vm.skip` sin `MAINNET_RPC_URL`.
+- `script/SimulateBundle.s.sol`: docs `eth_sendBundle` / `eth_callBundle` / `mev_sendBundle`; sim local OK (profit + tip).
+- **`forge test` → 64 PASS + 3 SKIP** (fork sin RPC). Script: `forge script script/SimulateBundle.s.sol:SimulateBundle -vvv`.
 
 ---
 
@@ -363,7 +368,7 @@ error ZeroAmount();
 2. [x] Solvers atómicos: EV negativo → revert total.
 3. [x] Tip a `block.coinbase` solo en path exitoso.
 4. [x] Guard `UnauthorizedSearcher` en ejecución.
-5. [ ] Fork test de arbitraje con imbalance simulado.
+5. [x] Fork test de arbitraje con imbalance simulado.
 6. [x] Fuzz de tip %, slippage y volúmenes.
 7. [ ] Gas profiling assembly vs Solidity.
 8. [x] Custom errors + NatSpec.
@@ -373,6 +378,6 @@ error ZeroAmount();
 
 ## 12. Próximo paso
 
-Esperar autorización explícita: **“autorizo Fase 6”** para fork mainnet + `SimulateBundle.s.sol`.
+Esperar autorización explícita: **“autorizo Fase 7”** para gas Yul vs Solidity + Deploy + SWC/GAS docs.
 
 **Nota:** usar `~/.foundry/bin/forge` (o anteponer `$HOME/.foundry/bin` al `PATH`); el `forge` de nvm/npm no es Foundry.

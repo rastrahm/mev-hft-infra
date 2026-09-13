@@ -2,7 +2,7 @@
 
 Infraestructura de searcher MEV de baja latencia, bundles privados (Flashbots Auction) y solvers on-chain de arbitraje/backrun/sandwich atómicos. Solidity `0.8.24` + Foundry.
 
-**Estado:** Fases **0–5** ✅. Fases **6–7** pendientes de autorización.
+**Estado:** Fases **0–6** ✅. Fase **7** pendiente de autorización.
 
 ## Docs
 
@@ -40,10 +40,17 @@ Fork opcional:
 ```bash
 # En `.env` (copiar desde `.env.example`)
 MAINNET_RPC_URL=https://...
-forge test --match-path test/fork/
+forge test --match-path 'test/fork/*'
+forge script script/SimulateBundle.s.sol:SimulateBundle --fork-url $MAINNET_RPC_URL -vvv
 ```
 
-## Deploy local (stub Fase 0)
+Simulación de bundle (local, sin relay):
+
+```bash
+forge script script/SimulateBundle.s.sol:SimulateBundle -vvv
+```
+
+## Deploy local (stub → completar en Fase 7)
 
 ```bash
 anvil   # otra terminal
