@@ -1,0 +1,31 @@
+# .cursorrules — Module 15: MEV & HFT Trading Infrastructure
+
+## MODULE OVERVIEW
+Focus on building low-latency MEV searcher infrastructure, private mempool bundle builders (Flashbots Auction spec), backrunning/sandwich execution smart contracts, and on-chain atomic arbitrage solvers using Foundry and Solidity 0.8.24.
+
+---
+
+## 1. TECHNICAL CONSTRAINTS & STACK
+
+- **Compiler Version:** Strictly `pragma solidity 0.8.24;` (no floating pragmas).
+- **Tooling:** Foundry (`forge` for unit testing, mempool bundle simulation via `eth_callBundle`, and gas profiling).
+- **RPC & Bundle Specs:** Standard Flashbots / Builder API format (`eth_sendBundle` / `mev_sendBundle`) with block target constraints.
+- **Atomic Solvers:** Zero-capital risk execution — transaction MUST revert entirely if profit target after builder tip/gas fee is not met.
+
+---
+
+## 2. CODING & SECURITY RULES
+
+- **Coinbase Direct Bribes:** Implement miner/builder tip mechanisms using `block.coinbase.transfer()` or direct assembly ETH transfer within the execution call.
+- **Strict Profit Verification:** Enforce hard profitability checks before bundle termination (`require(finalBalance >= initialBalance + minProfit, "Negative EV")`).
+- **Private Execution Guard:** Restrict execution calls strictly to authorized searcher EOA or trusted relayer contracts (`error UnauthorizedSearcher()`).
+- **Gas Optimization:** Use low-level assembly (`Yul`) for calldata parsing and custom memory management to minimize transaction overhead and win block space auctions.
+
+---
+
+## 3. TESTING REQUIREMENTS
+
+- **Foundry Unit & Fork Tests:** Test atomic arbitrage execution against live mainnet forks with simulated pool imbalance.
+- **Revert-on-Unprofitable Tests:** Assert that any price movement invalidating the arbitrage opportunity explicitly reverts without paying builder bribes.
+- **Gas Overhead Profiling:** Measure assembly-optimized execution paths versus standard Solidity calls.
+- **Fuzzing Tests:** Fuzz pool slippage, builder tip percentages, and input trade volumes.
