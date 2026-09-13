@@ -1,6 +1,6 @@
 # Planificación — Módulo 15: MEV & HFT Trading Infrastructure
 
-**Estado:** Fase **0** ✅ completada. Fases **1–7** ⏳ pendientes.  
+**Estado:** Fases **0–1** ✅ completadas. Fases **2–7** ⏳ pendientes.  
 **Regla de avance:** cada fase requiere **autorización explícita** del responsable antes de empezar (*“autorizo Fase N”* o equivalente).
 
 ---
@@ -158,7 +158,7 @@ error ZeroAmount();
 | Fase | Nombre | Estado | Autorización |
 |------|--------|--------|--------------|
 | 0 | Setup Foundry + estructura + deps | ✅ Completada | ✅ Autorizada |
-| 1 | Errors + libs (`ProfitLib`, `CoinbaseTip`, `CalldataCodec`) | ⏳ Pendiente | ❌ |
+| 1 | Errors + libs (`ProfitLib`, `CoinbaseTip`, `CalldataCodec`) | ✅ Completada | ✅ Autorizada |
 | 2 | `AtomicArbitrageSolver` (unit + mocks) | ⏳ Pendiente | ❌ |
 | 3 | `BackrunExecutor` + tip coinbase | ⏳ Pendiente | ❌ |
 | 4 | `SandwichExecutor` (lab) + Unauthorized | ⏳ Pendiente | ❌ |
@@ -192,7 +192,7 @@ error ZeroAmount();
 
 ---
 
-### Fase 1 — Errors + libraries
+### Fase 1 — Errors + libraries ✅
 
 **Objetivo:** primitives reutilizables de profit, tip y decode.
 
@@ -201,6 +201,16 @@ error ZeroAmount();
 3. Documentar tradeoffs de gas en comentarios `@dev`.
 
 **Criterio de salida:** libs en verde; tip falla → `TipTransferFailed`.
+
+**Hecho (2026-09-13):**
+- `src/errors/MevErrors.sol` — custom errors del módulo (incl. `UnauthorizedSearcher`, `NegativeEV`, `TipTransferFailed`).
+- `src/libraries/ProfitLib.sol` — `snapshot` (ERC-20 / ETH), `requireProfit`, `netProfit`.
+- `src/libraries/CoinbaseTip.sol` — `pay` (`.call`) + `payAssembly` (Yul `call` + `coinbase`); tip `0` no-op.
+- `src/libraries/CalldataCodec.sol` — `Route` + encode/decode packed 144 B / amounts 64 B en Yul.
+- Mocks: `MockERC20`, `RejectETH` (coinbase que rechaza ETH).
+- Tests: `test/libraries/{ProfitLib,CoinbaseTip,CalldataCodec}.t.sol` + harnesses; fuzz ≥ 1000.
+- Stub `Placeholder` eliminado.
+- **`forge test` → 22 PASS**.
 
 ---
 
@@ -336,6 +346,6 @@ error ZeroAmount();
 
 ## 12. Próximo paso
 
-Esperar autorización explícita: **“autorizo Fase 1”** para errors + libs (`ProfitLib`, `CoinbaseTip`, `CalldataCodec`).
+Esperar autorización explícita: **“autorizo Fase 2”** para `AtomicArbitrageSolver` (unit + mocks AMM/router).
 
 **Nota:** usar `~/.foundry/bin/forge` (o anteponer `$HOME/.foundry/bin` al `PATH`); el `forge` de nvm/npm no es Foundry.
