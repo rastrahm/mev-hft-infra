@@ -1,6 +1,6 @@
 # Planificación — Módulo 15: MEV & HFT Trading Infrastructure
 
-**Estado:** Fases **0–2** ✅ completadas. Fases **3–7** ⏳ pendientes.  
+**Estado:** Fases **0–3** ✅ completadas. Fases **4–7** ⏳ pendientes.  
 **Regla de avance:** cada fase requiere **autorización explícita** del responsable antes de empezar (*“autorizo Fase N”* o equivalente).
 
 ---
@@ -160,7 +160,7 @@ error ZeroAmount();
 | 0 | Setup Foundry + estructura + deps | ✅ Completada | ✅ Autorizada |
 | 1 | Errors + libs (`ProfitLib`, `CoinbaseTip`, `CalldataCodec`) | ✅ Completada | ✅ Autorizada |
 | 2 | `AtomicArbitrageSolver` (unit + mocks) | ✅ Completada | ✅ Autorizada |
-| 3 | `BackrunExecutor` + tip coinbase | ⏳ Pendiente | ❌ |
+| 3 | `BackrunExecutor` + tip coinbase | ✅ Completada | ✅ Autorizada |
 | 4 | `SandwichExecutor` (lab) + Unauthorized | ⏳ Pendiente | ❌ |
 | 5 | Revert-on-unprofitable + fuzz tip/slippage/volume | ⏳ Pendiente | ❌ |
 | 6 | Fork mainnet + `SimulateBundle` | ⏳ Pendiente | ❌ |
@@ -234,7 +234,7 @@ error ZeroAmount();
 
 ---
 
-### Fase 3 — BackrunExecutor
+### Fase 3 — BackrunExecutor ✅
 
 **Objetivo:** ejecutar backrun post-victim con tip al builder.
 
@@ -243,6 +243,12 @@ error ZeroAmount();
 3. Integración con mocks de pool desbalanceado por victim.
 
 **Criterio de salida:** tip solo en path rentable; revert limpio si no.
+
+**Hecho (2026-09-13):**
+- `IBackrunExecutor` + `BackrunExecutor` (Ownable2Step, ReentrancyGuard, `backrun` / `setSearcher` / `withdraw`).
+- Flujo: auth → snapshot → swap A/B → `payAssembly` tip → `requireProfit`.
+- Tests: victim buy en pool A → backrun compra en B / vende en A; tip; NegativeEV sin victim (sin bribe residual); unauthorized; tip reject.
+- **`forge test` → 43 PASS**.
 
 ---
 
@@ -354,6 +360,6 @@ error ZeroAmount();
 
 ## 12. Próximo paso
 
-Esperar autorización explícita: **“autorizo Fase 3”** para `BackrunExecutor` + tip coinbase post-victim.
+Esperar autorización explícita: **“autorizo Fase 4”** para `SandwichExecutor` (lab) + guards unauthorized.
 
 **Nota:** usar `~/.foundry/bin/forge` (o anteponer `$HOME/.foundry/bin` al `PATH`); el `forge` de nvm/npm no es Foundry.
