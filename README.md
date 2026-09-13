@@ -2,11 +2,11 @@
 
 Infraestructura de searcher MEV de baja latencia, bundles privados (Flashbots Auction) y solvers on-chain de arbitraje/backrun/sandwich atómicos. Solidity `0.8.24` + Foundry.
 
-**Estado:** Fases **0–6** ✅. Fase **7** pendiente de autorización.
+**Estado:** Fases **0–7** ✅ (módulo v1 cerrado).
 
 ## Docs
 
-Ver [`doc/`](./doc/README.md) — planificación, diagramas de clases/flujo y flujograma.
+Ver [`doc/`](./doc/README.md) — planificación, diagramas, SWC-AUDIT y gas.
 
 ## Stack
 
@@ -21,14 +21,14 @@ Ver [`doc/`](./doc/README.md) — planificación, diagramas de clases/flujo y fl
 ## Setup
 
 ```bash
-# Preferir Foundry de ~/.foundry/bin si el `forge` del PATH no es Foundry
 export PATH="$HOME/.foundry/bin:$PATH"
 
 forge build
 forge test
+forge snapshot --match-contract MevGasTest
 ```
 
-Dependencias (ya instaladas en Fase 0; reinstalar si hace falta):
+Dependencias (ya en `lib/`; reinstalar si hace falta):
 
 ```bash
 forge install foundry-rs/forge-std@v1.16.2 --no-git --shallow
@@ -44,13 +44,13 @@ forge test --match-path 'test/fork/*'
 forge script script/SimulateBundle.s.sol:SimulateBundle --fork-url $MAINNET_RPC_URL -vvv
 ```
 
-Simulación de bundle (local, sin relay):
+Simulación de bundle (local):
 
 ```bash
 forge script script/SimulateBundle.s.sol:SimulateBundle -vvv
 ```
 
-## Deploy local (stub → completar en Fase 7)
+## Deploy local
 
 ```bash
 anvil   # otra terminal
@@ -58,7 +58,3 @@ forge script script/Deploy.s.sol:Deploy --rpc-url http://127.0.0.1:8545 --broadc
 ```
 
 Env: ver `.env.example` (`PRIVATE_KEY`, `SEARCHER`, `MAINNET_RPC_URL`).
-
-## Gobernanza de fases
-
-No avanzar sin *“autorizo Fase N”*. Detalle en [`doc/planificacion.md`](./doc/planificacion.md).

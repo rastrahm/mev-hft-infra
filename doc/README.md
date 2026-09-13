@@ -8,9 +8,9 @@
 | [diagrama-de-clases.md](./diagrama-de-clases.md) | Estructura de contratos, libs e interfaces |
 | [diagrama-de-flujo.md](./diagrama-de-flujo.md) | Flujos de decisión (arb, tip, profit, sandwich lab) |
 | [flujograma.md](./flujograma.md) | Flujos actor–sistema e2e (searcher → bundle → on-chain) |
-| [SWC-AUDIT.md](./SWC-AUDIT.md) | Matriz SWC (Fase 7) |
-| [GAS.md](./GAS.md) | Benchmarks Yul vs Solidity (Fase 7) |
+| [SWC-AUDIT.md](./SWC-AUDIT.md) | Matriz SWC-100–136 (Fase 7) |
+| [GAS.md](./GAS.md) | Benchmarks tip Yul vs Solidity + hot paths (Fase 7) |
 
 **Regla:** cada fase de implementación requiere autorización explícita antes de escribir código.
 
-**Estado actual:** Fases **0–6** ✅. Fase **7** ⏳.
+**Estado actual:** Fases **0–7** ✅ (módulo v1 cerrado).

@@ -7,18 +7,17 @@ import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IBackrunExecutor} from "./interfaces/IBackrunExecutor.sol";
-import {IDexRouter} from "./interfaces/IDexRouter.sol";
 import {MevErrors} from "./errors/MevErrors.sol";
 import {ProfitLib} from "./libraries/ProfitLib.sol";
 import {CoinbaseTip} from "./libraries/CoinbaseTip.sol";
+import {MevSwapLib} from "./libraries/MevSwapLib.sol";
 import {Route} from "./libraries/CalldataCodec.sol";
 
 /**
  * @title BackrunExecutor
  * @notice Backrun atómico post-victim: swap A → swap B → tip coinbase → `minProfit`.
  * @dev Misma garantía de EV que el solver: tip solo persiste si el profit check pasa.
- *      En un bundle real la victim tx precede a esta llamada; en unit tests se simula el imbalance.
- *      CEI + `ReentrancyGuard`; tip vía `CoinbaseTip.payAssembly`.
+ *      Hot path vía `MevSwapLib` + `ProfitLib.takeProfit` + `CoinbaseTip.payAssembly`.
  */
 contract BackrunExecutor is IBackrunExecutor, Ownable2Step, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -47,34 +46,23 @@ contract BackrunExecutor is IBackrunExecutor, Ownable2Step, ReentrancyGuard {
         if (amountIn == 0) revert MevErrors.ZeroAmount();
         _validateRoute(route);
 
-        uint256 initial = ProfitLib.snapshot(route.tokenIn);
+        address tokenIn = route.tokenIn;
+        uint256 initial = ProfitLib.snapshot(tokenIn);
 
-        address[] memory pathA = new address[](2);
-        pathA[0] = route.tokenIn;
-        pathA[1] = route.tokenOut;
-
-        IERC20(route.tokenIn).forceApprove(route.routerA, amountIn);
-        uint256 mid =
-            IDexRouter(route.routerA).swapExactTokensForTokens(amountIn, route.amountOutMinA, pathA, address(this));
-        IERC20(route.tokenIn).forceApprove(route.routerA, 0);
-
-        if (mid == 0) revert MevErrors.InsufficientOutput();
-
-        address[] memory pathB = new address[](2);
-        pathB[0] = route.tokenOut;
-        pathB[1] = route.tokenIn;
-
-        IERC20(route.tokenOut).forceApprove(route.routerB, mid);
-        IDexRouter(route.routerB).swapExactTokensForTokens(mid, route.amountOutMinB, pathB, address(this));
-        IERC20(route.tokenOut).forceApprove(route.routerB, 0);
+        MevSwapLib.swapRoundTrip(
+            tokenIn,
+            route.tokenOut,
+            route.routerA,
+            route.routerB,
+            amountIn,
+            route.amountOutMinA,
+            route.amountOutMinB
+        );
 
         CoinbaseTip.payAssembly(tipWei);
 
-        uint256 final_ = ProfitLib.snapshot(route.tokenIn);
-        ProfitLib.requireProfit(initial, final_, minProfit);
-        profit = ProfitLib.netProfit(initial, final_);
-
-        emit BackrunExecuted(msg.sender, route.tokenIn, amountIn, profit, tipWei);
+        profit = ProfitLib.takeProfit(initial, ProfitLib.snapshot(tokenIn), minProfit);
+        emit BackrunExecuted(msg.sender, tokenIn, amountIn, profit, tipWei);
     }
 
     /// @inheritdoc IBackrunExecutor

@@ -197,16 +197,16 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    Doc[doc/ ✅] --> F0[Fase 0 Setup]
-    F0 --> F1[Fase 1 Libs]
-    F1 --> F2[Fase 2 AtomicArb]
-    F2 --> F3[Fase 3 Backrun]
-    F3 --> F4[Fase 4 Sandwich lab]
-    F4 --> F5[Fase 5 Fuzz / unprofitable]
-    F5 --> F6[Fase 6 Fork / SimulateBundle]
-    F6 --> F7[Fase 7 Gas / Deploy / SWC]
-    F7 --> Done([Módulo v1])
+    Doc[doc/ ✅] --> F0[Fase 0 Setup ✅]
+    F0 --> F1[Fase 1 Libs ✅]
+    F1 --> F2[Fase 2 AtomicArb ✅]
+    F2 --> F3[Fase 3 Backrun ✅]
+    F3 --> F4[Fase 4 Sandwich lab ✅]
+    F4 --> F5[Fase 5 Fuzz / unprofitable ✅]
+    F5 --> F6[Fase 6 Fork / SimulateBundle ✅]
+    F6 --> F7[Fase 7 Gas / Deploy / SWC ✅]
+    F7 --> Done([Módulo v1 cerrado ✅])
 ```
 
 **Gate:** no avanzar de fase sin *“autorizo Fase N”*. Detalle en [`planificacion.md`](./planificacion.md).  
-**Estado:** Fases **0–6** ✅. Fase **7** ⏳ pendiente de autorización.
+**Estado:** Fases **0–7** ✅ (módulo v1 cerrado).
