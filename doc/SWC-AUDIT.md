@@ -188,10 +188,22 @@ Error reservado para deadlines off-chain / fork; no usado en hot path v1.
 
 ```text
 forge test --summary
-# 2026-09-13 Fase 7
-# 71 PASS / 0 FAIL / 3 SKIP (fork sin MAINNET_RPC_URL)
+# 2026-09-13 — docs sync post Fase 7
+AtomicArbitrageSolverTest  12 PASS
+BackrunExecutorTest         9 PASS
+SandwichExecutorTest        9 PASS
+UnauthorizedTest            3 PASS
+RevertOnUnprofitableTest    5 PASS
+MevFuzzTest                 4 PASS (1000 runs c/u)
+MevGasTest                  5 PASS
+ProfitLibTest              11 PASS
+CoinbaseTipTest             7 PASS
+CalldataCodecTest           6 PASS
+ArbitrageForkTest           3 SKIP (sin MAINNET_RPC_URL)
+Total: 71 PASS / 0 FAIL / 3 SKIP
 ```
 
+Gas snapshot (`.gas-snapshot`): arb noTip **227 631**; tip Yul **37 293** vs `.call` **37 508**.
 ---
 
 ## Referencias

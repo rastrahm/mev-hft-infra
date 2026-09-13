@@ -1,16 +1,17 @@
 # Documentación — Módulo 15: MEV & HFT Trading Infrastructure
 
-Índice de diseño y planificación de la infraestructura de searcher MEV, bundles Flashbots y solvers atómicos.
+Índice de diseño, seguridad y gas del módulo (searcher MEV, bundles Flashbots, solvers atómicos).
 
-| Archivo | Contenido |
-|---------|-----------|
-| [planificacion.md](./planificacion.md) | Fases de desarrollo, gates de autorización, alcance y criterios |
-| [diagrama-de-clases.md](./diagrama-de-clases.md) | Estructura de contratos, libs e interfaces |
-| [diagrama-de-flujo.md](./diagrama-de-flujo.md) | Flujos de decisión (arb, tip, profit, sandwich lab) |
-| [flujograma.md](./flujograma.md) | Flujos actor–sistema e2e (searcher → bundle → on-chain) |
-| [SWC-AUDIT.md](./SWC-AUDIT.md) | Matriz SWC-100–136 (Fase 7) |
-| [GAS.md](./GAS.md) | Benchmarks tip Yul vs Solidity + hot paths (Fase 7) |
+| Archivo | Contenido | Estado |
+|---------|-----------|--------|
+| [planificacion.md](./planificacion.md) | Fases 0–7, arquitectura implementada, criterios | ✅ Cerrado |
+| [diagrama-de-clases.md](./diagrama-de-clases.md) | UML: solvers, `MevSwapLib`, hooks, mocks | ✅ Actualizado |
+| [diagrama-de-flujo.md](./diagrama-de-flujo.md) | Decisiones: auth → swap → tip → `takeProfit` | ✅ Actualizado |
+| [flujograma.md](./flujograma.md) | E2E searcher → bundle → on-chain + sandwich lab | ✅ Actualizado |
+| [SWC-AUDIT.md](./SWC-AUDIT.md) | Matriz SWC-100–136 (0 vulnerables) | ✅ |
+| [GAS.md](./GAS.md) | Baseline tip Yul vs Solidity + hot paths | ✅ |
 
-**Regla:** cada fase de implementación requiere autorización explícita antes de escribir código.
+**Estado del módulo:** Fases **0–7** ✅ (v1 cerrado).  
+**Suite:** `forge test` → **71 PASS / 3 SKIP** (fork sin RPC).
 
-**Estado actual:** Fases **0–7** ✅ (módulo v1 cerrado).
+README del módulo: [`../README.md`](../README.md).

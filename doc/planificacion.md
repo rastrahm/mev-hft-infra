@@ -29,7 +29,7 @@ Stack: **Foundry + Solidity `0.8.24`** (pragma fijo). Frontend Next.js queda **f
 | Access control: `authorizedSearcher` + `UnauthorizedSearcher` | Keystore / signing infra en cloud |
 | Tip builder vía `block.coinbase` (assembly o `.call`) | Frontend Next.js de monitoreo |
 | Scripts Foundry: simulación de bundle / fork mainnet | Integración live Flashbots Protect en CI |
-| Libs: profit math, calldata decode Yul, tip helper | Cross-chain MEV / L2 sequencers |
+| Libs: `ProfitLib`, `CoinbaseTip`, `CalldataCodec`, `MevSwapLib` | Cross-chain MEV / L2 sequencers |
 | Tests: fork, revert-on-unprofitable, gas, fuzz tip/slippage | Oráculos Chainlink para “fair price” |
 
 ---
@@ -49,10 +49,10 @@ Stack: **Foundry + Solidity `0.8.24`** (pragma fijo). Frontend Next.js queda **f
 ### Módulo 15 (MEV / HFT)
 
 - Bundles: formato Builder/Flashbots con `blockNumber` target y simulación previa.
-- Ejecución atómica: `require(finalBalance >= initialBalance + minProfit)` → revert total si EV negativo.
-- Tip: transferencia directa a `block.coinbase` **solo si** el trade es rentable (orden: trade → tip → verify profit, o tip dentro del envelope que revierte si falla verify).
-- Guard: `msg.sender == authorizedSearcher` (o relayer whitelist) → `UnauthorizedSearcher()`.
-- Gas: decode de rutas/amounts en assembly; tip en Yul donde aporte ROI de gas medible.
+- Ejecución atómica: `ProfitLib.takeProfit` → revert total si EV negativo (`NegativeEV`).
+- Tip: `CoinbaseTip.payAssembly` a `block.coinbase` **antes** del profit check (si falla EV, revierte el tip).
+- Guard: `msg.sender == authorizedSearcher` → `UnauthorizedSearcher()`.
+- Gas: `MevSwapLib` + tip Yul + `takeProfit` (ver [`GAS.md`](./GAS.md)).
 
 ### Next.js (`nextjs.cursorrules`) — post-v1
 
@@ -61,38 +61,44 @@ Stack: **Foundry + Solidity `0.8.24`** (pragma fijo). Frontend Next.js queda **f
 
 ---
 
-## 4. Arquitectura (propuesta v1)
+## 4. Arquitectura (v1 implementado)
 
 ```
 15-mev-hft-infra/
 ├── README.md
 ├── doc/
+│   ├── README.md
 │   ├── planificacion.md
 │   ├── diagrama-de-clases.md
 │   ├── diagrama-de-flujo.md
-│   └── flujograma.md
+│   ├── flujograma.md
+│   ├── SWC-AUDIT.md
+│   └── GAS.md
 ├── src/
-│   ├── AtomicArbitrageSolver.sol      # Arbitraje 2-pool atómico + tip + profit
-│   ├── BackrunExecutor.sol            # Backrun de victim tx + tip coinbase
-│   ├── SandwichExecutor.sol           # Front/back sandwich (lab) + guards
+│   ├── AtomicArbitrageSolver.sol
+│   ├── BackrunExecutor.sol
+│   ├── SandwichExecutor.sol
 │   ├── interfaces/
 │   │   ├── IAtomicArbitrageSolver.sol
 │   │   ├── IBackrunExecutor.sol
-│   │   ├── ISandwichExecutor.sol
-│   │   ├── IDexRouter.sol             # swapExactIn mínimo
-│   │   └── IUniswapV2Pair.sol         # opcional para swap directo
+│   │   ├── ISandwichExecutor.sol      # + SandwichLeg, ISandwichMidHook
+│   │   ├── IDexRouter.sol
+│   │   └── ISimpleAMM.sol
 │   ├── libraries/
-│   │   ├── ProfitLib.sol              # balance delta / minProfit check
-│   │   ├── CoinbaseTip.sol            # tip seguro a block.coinbase
-│   │   └── CalldataCodec.sol          # decode Yul de rutas/params
+│   │   ├── ProfitLib.sol              # snapshot / requireProfit / netProfit / takeProfit
+│   │   ├── CoinbaseTip.sol            # pay + payAssembly (Yul)
+│   │   ├── CalldataCodec.sol          # Route packed 144 B / amounts 64 B
+│   │   └── MevSwapLib.sol             # round-trip 2-router (hot path)
 │   ├── errors/
 │   │   └── MevErrors.sol
 │   └── mocks/
 │       ├── MockERC20.sol
-│       ├── MockAMM.sol                # x*y=k, reservas seteables
-│       └── MockRouter.sol
+│       ├── MockAMM.sol
+│       ├── MockRouter.sol
+│       └── RejectETH.sol
 ├── test/
-│   ├── helpers/MevTestBase.sol
+│   ├── helpers/{MevTestBase,LibHarnesses}.sol
+│   ├── libraries/{ProfitLib,CoinbaseTip,CalldataCodec}.t.sol
 │   ├── AtomicArbitrageSolver.t.sol
 │   ├── BackrunExecutor.t.sol
 │   ├── SandwichExecutor.t.sol
@@ -103,7 +109,7 @@ Stack: **Foundry + Solidity `0.8.24`** (pragma fijo). Frontend Next.js queda **f
 │   └── gas/Mev.gas.t.sol
 ├── script/
 │   ├── Deploy.s.sol
-│   └── SimulateBundle.s.sol           # eth_callBundle / fork simulate
+│   └── SimulateBundle.s.sol
 ├── foundry.toml
 ├── remappings.txt
 ├── .env.example
@@ -114,15 +120,16 @@ Stack: **Foundry + Solidity `0.8.24`** (pragma fijo). Frontend Next.js queda **f
 
 | Artefacto | Responsabilidad |
 |-----------|-----------------|
-| `AtomicArbitrageSolver` | Orquesta swaps entre 2+ pools; tip; verifica `minProfit` |
-| `BackrunExecutor` | Ejecuta trade después de una victim tx simulada; tip builder |
-| `SandwichExecutor` | Front-run + back-run atómicos en lab; mismos guards de profit |
-| `ProfitLib` | Snapshot de balance, delta, `NegativeEV` |
-| `CoinbaseTip` | Pago ETH a `block.coinbase` sin reentrancy leak |
-| `CalldataCodec` | Parse calldata compacto en Yul |
+| `AtomicArbitrageSolver` | Arb 2-router atómico; tip; `takeProfit` |
+| `BackrunExecutor` | Backrun post-victim; mismo hot path que arb |
+| `SandwichExecutor` | Front → midHook victim → back (lab); tip; profit |
+| `MevSwapLib` | Round-trip gas-opt (path reutilizado; sin approve(0)) |
+| `ProfitLib` | Snapshot + `takeProfit` / `requireProfit` / `netProfit` |
+| `CoinbaseTip` | Tip ETH a `block.coinbase` (Yul en prod) |
+| `CalldataCodec` | Encode/decode packed de `Route` y amounts |
 | `MevErrors` | Custom errors del módulo |
-| `MockAMM` / `MockRouter` | Desequilibrio artificial para unit tests |
-| `SimulateBundle.s.sol` | Script de simulación de bundle en fork |
+| `MockAMM` / `MockRouter` / `RejectETH` | Tests e imbalance / tip fallido |
+| `SimulateBundle.s.sol` | Sim local estilo `eth_callBundle` |
 
 ---
 
