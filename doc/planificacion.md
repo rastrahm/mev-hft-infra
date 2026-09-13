@@ -1,6 +1,6 @@
 # Planificación — Módulo 15: MEV & HFT Trading Infrastructure
 
-**Estado:** Fases **0–7** ⏳ pendientes (solo documentación de diseño).  
+**Estado:** Fase **0** ✅ completada. Fases **1–7** ⏳ pendientes.  
 **Regla de avance:** cada fase requiere **autorización explícita** del responsable antes de empezar (*“autorizo Fase N”* o equivalente).
 
 ---
@@ -157,7 +157,7 @@ error ZeroAmount();
 
 | Fase | Nombre | Estado | Autorización |
 |------|--------|--------|--------------|
-| 0 | Setup Foundry + estructura + deps | ⏳ Pendiente | ❌ |
+| 0 | Setup Foundry + estructura + deps | ✅ Completada | ✅ Autorizada |
 | 1 | Errors + libs (`ProfitLib`, `CoinbaseTip`, `CalldataCodec`) | ⏳ Pendiente | ❌ |
 | 2 | `AtomicArbitrageSolver` (unit + mocks) | ⏳ Pendiente | ❌ |
 | 3 | `BackrunExecutor` + tip coinbase | ⏳ Pendiente | ❌ |
@@ -170,7 +170,7 @@ error ZeroAmount();
 
 ## 7. Detalle por fase
 
-### Fase 0 — Setup Foundry
+### Fase 0 — Setup Foundry ✅
 
 **Objetivo:** repo compilable con tooling de la suite.
 
@@ -180,6 +180,15 @@ error ZeroAmount();
 4. Stub mínimo + smoke test; `.env.example` (RPC, searcher pk **solo local**).
 
 **Criterio de salida:** `forge build` y `forge test` en verde.
+
+**Hecho (2026-09-13):**
+- `foundry.toml` (solc `0.8.24`, Cancun, optimizer `10_000`, `via_ir`, fuzz `runs = 1000`, `[rpc_endpoints].mainnet`).
+- `remappings.txt`: `forge-std/`, `@openzeppelin/contracts/`.
+- Dependencias en `lib/` (gitignored): `forge-std` **v1.16.2**, OpenZeppelin **v5.2.0** (copiadas del módulo 14; `forge install` a GitHub no disponible en el entorno).
+- Carpetas `src/{interfaces,libraries,errors,mocks}`, `test/{helpers,fuzz,fork,gas}`, `script/`.
+- Stub `src/Placeholder.sol` + `test/Placeholder.t.sol` (ping + remapping IERC20).
+- Stub `script/Deploy.s.sol` (Fase 7), `.env.example`, `README.md`, `doc/README.md`.
+- `forge build` OK; `forge test` → **3 PASS**.
 
 ---
 
@@ -307,7 +316,7 @@ error ZeroAmount();
 | `flujograma.md` | Flujos actor–sistema e2e | ✅ |
 | `SWC-AUDIT.md` | Matriz SWC (Fase 7) | ⏳ |
 | `GAS.md` | Benchmarks (Fase 7) | ⏳ |
-| `README.md` | Índice del módulo (Fase 0) | ⏳ |
+| `README.md` | Índice del módulo | ✅ |
 
 ---
 
@@ -327,6 +336,6 @@ error ZeroAmount();
 
 ## 12. Próximo paso
 
-Esperar autorización explícita: **“autorizo Fase 0”** para scaffold Foundry y estructura de carpetas.
+Esperar autorización explícita: **“autorizo Fase 1”** para errors + libs (`ProfitLib`, `CoinbaseTip`, `CalldataCodec`).
 
 **Nota:** usar `~/.foundry/bin/forge` (o anteponer `$HOME/.foundry/bin` al `PATH`); el `forge` de nvm/npm no es Foundry.
