@@ -1,18 +1,19 @@
 # Flujograma — Ciclo completo MEV & HFT Infrastructure
 
-Flujo extremo a extremo entre actores, contratos y relayer/builder (módulo 15, **diseño v1**).
+Flujo extremo a extremo entre actores, contratos y relayer/builder (módulo 15, **v1 implementado**).
 
 ## Actores
 
 | Actor | Rol |
 |-------|-----|
 | Searcher EOA | Detecta oportunidades; firma y envía txs del bundle |
-| AtomicArbitrageSolver | Ejecuta arb 2-pool atómico + tip + profit check |
-| BackrunExecutor | Captura spread post-victim |
-| SandwichExecutor | Front+back en lab/fork |
-| DEX / AMM | Pools donde ocurre el desequilibrio |
-| Builder / Flashbots Relay | Recibe bundle privado; ordena txs; cobra tip vía coinbase |
-| CI / Foundry | Unit, fuzz, fork, gas, simulate bundle |
+| AtomicArbitrageSolver | Arb 2-router + `MevSwapLib` + tip + `takeProfit` |
+| BackrunExecutor | Captura spread post-victim (mismo hot path) |
+| SandwichExecutor | Front → midHook victim → back (lab/fork) |
+| MevSwapLib / ProfitLib / CoinbaseTip | Libs de swap, EV y tip |
+| DEX / AMM (mocks) | Pools donde ocurre el desequilibrio |
+| Builder / Flashbots Relay | Bundle privado; tip vía `block.coinbase` |
+| CI / Foundry | Unit, fuzz, fork, gas, `SimulateBundle` |
 
 ---
 
@@ -20,11 +21,11 @@ Flujo extremo a extremo entre actores, contratos y relayer/builder (módulo 15, 
 
 ```mermaid
 flowchart TD
-    Start([Inicio]) --> Dep[Deploy solvers / executors]
+    Start([Inicio]) --> Dep[Deploy.s.sol: solvers + mocks]
     Dep --> Own[Owner: Ownable2Step]
-    Own --> Auth[setSearcher searcherEOA]
-    Auth --> Fund[Fondear solver con tokens / WETH si aplica]
-    Fund --> Ready([Listo para bundles de lab/fork])
+    Own --> Auth[authorizedSearcher en constructor / setSearcher]
+    Auth --> Fund[Fondear tokens + ETH tip]
+    Fund --> Ready([Listo lab/fork/Anvil])
 ```
 
 ---
@@ -34,17 +35,17 @@ flowchart TD
 ```mermaid
 flowchart TD
     Start([Mempool / evento de precio]) --> Detect[Searcher detecta spread o victim]
-    Detect --> Build[Construir payload: route, amountIn, minProfit, tipWei]
-    Build --> Sim[Simular: forge fork / eth_callBundle]
+    Detect --> Build[route, amountIn, minProfit, tipWei]
+    Build --> Sim[SimulateBundle / eth_callBundle / forge fork]
     Sim --> OkSim{¿EV >= minProfit tras tip?}
-    OkSim -->|No| Drop[Descartar oportunidad]
-    OkSim -->|Sí| Send[Enviar bundle al relay — block target]
-    Send --> Incl{¿Builder incluye bundle?}
+    OkSim -->|No| Drop[Descartar]
+    OkSim -->|Sí| Send[eth_sendBundle / mev_sendBundle]
+    Send --> Incl{¿Builder incluye?}
     Incl -->|No| Retry[Re-evaluar siguiente bloque]
-    Incl -->|Sí| Exec[Contrato: auth → swaps → tip → profit]
+    Incl -->|Sí| Exec[auth → MevSwapLib → payAssembly → takeProfit]
     Exec --> Profit{¿NegativeEV?}
-    Profit -->|Sí| Rev[Tx revierte — sin tip efectivo]
-    Profit -->|No| Done([Profit al searcher / contrato])
+    Profit -->|Sí| Rev[Revert — sin tip residual]
+    Profit -->|No| Done([Profit en el contrato / searcher])
     Drop --> End([Fin])
     Retry --> Detect
     Rev --> End
@@ -57,15 +58,14 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start([Searcher llama execute]) --> Auth{¿authorized?}
+    Start([Searcher: execute]) --> Auth{¿authorized?}
     Auth -->|No| ErrU[UnauthorizedSearcher]
-    Auth -->|Sí| Snap[Snapshot balance]
-    Snap --> S1[Swap en pool A]
-    S1 --> S2[Swap en pool B]
-    S2 --> Tip[Tip a block.coinbase]
-    Tip --> Check{final >= initial + minProfit?}
-    Check -->|No| ErrN[NegativeEV]
-    Check -->|Sí| Ok([Emit + return profit])
+    Auth -->|Sí| Snap[snapshot tokenIn]
+    Snap --> RT[MevSwapLib.swapRoundTrip]
+    RT --> Tip[payAssembly tipWei]
+    Tip --> Check[takeProfit]
+    Check -->|fail| ErrN[NegativeEV]
+    Check -->|ok| Ok([Emit + return profit])
     ErrU --> Fail([Fin — rechazo])
     ErrN --> Fail
     Ok --> Success([Fin — OK])
@@ -77,13 +77,13 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start([Bundle ordenado]) --> V[Tx victim: swap grande en AMM]
-    V --> B[Tx backrun: BackrunExecutor.backrun]
+    Start([Bundle ordenado]) --> V[Victim swap en AMM]
+    V --> B[BackrunExecutor.backrun]
     B --> Auth{¿searcher auth?}
-    Auth -->|No| Fail[Revert auth]
-    Auth -->|Sí| Trade[Swap en sentido contrario al imbalance]
-    Trade --> Tip[Tip builder]
-    Tip --> EV{¿rentable?}
+    Auth -->|No| Fail[UnauthorizedSearcher]
+    Auth -->|Sí| Trade[MevSwapLib round-trip]
+    Trade --> Tip[payAssembly]
+    Tip --> EV[takeProfit]
     EV -->|No| Rev[NegativeEV]
     EV -->|Sí| Ok([Backrun + tip OK])
     Fail --> End([Fin])
@@ -97,11 +97,11 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[Precio se mueve / slippage alto] --> B[Swaps producen EV < minProfit]
-    B --> C[ProfitLib.requireProfit falla]
+    A[Precio se mueve / pools planos] --> B[Swaps → EV < minProfit]
+    B --> C[takeProfit falla]
     C --> D[Revert NegativeEV]
     D --> E[EVM deshace tip a coinbase]
-    E --> F[Test: balance coinbase sin incremento por tip]
+    E --> F[Assert: builder.balance sin tip]
 ```
 
 ---
@@ -111,11 +111,11 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[Caller no es searcher] --> B[UnauthorizedSearcher]
-    C[minProfit demasiado alto vs spread] --> D[NegativeEV]
-    E[Router / path malformado] --> F[InvalidRoute]
-    G[Tip con contrato coinbase que reverts] --> H[TipTransferFailed]
+    C[minProfit demasiado alto] --> D[NegativeEV]
+    E[Router / path malformado] --> F[ZeroAddress / InvalidRoute]
+    G[Coinbase RejectETH] --> H[TipTransferFailed]
     I[amountIn = 0] --> J[ZeroAmount]
-    K[Slippage min no alcanzado] --> L[SlippageExceeded / InsufficientOutput]
+    K[amountOutMin absurdo] --> L[MockAMM.SlippageExceeded]
 ```
 
 ---
@@ -127,63 +127,38 @@ sequenceDiagram
     actor S as Searcher EOA
     participant Rel as Builder/Relay
     participant Sol as AtomicArbitrageSolver
-    participant RA as Router/Pool A
-    participant RB as Router/Pool B
+    participant Lib as MevSwapLib
     participant CB as block.coinbase
 
-    S->>S: Detectar spread + simular
+    S->>S: Detectar spread + SimulateBundle
     S->>Rel: eth_sendBundle([executeTx], targetBlock)
     Rel->>Sol: execute(route, amountIn, minProfit, tipWei)
-    Sol->>Sol: require msg.sender == authorizedSearcher
-    Sol->>Sol: snapshot initial
-    Sol->>RA: swapExactIn
-    RA-->>Sol: midToken
-    Sol->>RB: swapExactIn
-    RB-->>Sol: tokenOut
-    Sol->>CB: tipWei (call/assembly)
-    Sol->>Sol: require final >= initial + minProfit
-    Sol-->>S: profit (evento / balance)
+    Sol->>Sol: require authorizedSearcher
+    Sol->>Sol: snapshot(tokenIn)
+    Sol->>Lib: swapRoundTrip(...)
+    Lib-->>Sol: mid OK
+    Sol->>CB: payAssembly(tipWei)
+    Sol->>Sol: takeProfit(...)
+    Sol-->>S: profit (evento)
 ```
 
 ---
 
-## Secuencia — backrun en bundle
-
-```mermaid
-sequenceDiagram
-    actor Vic as Victim
-    actor S as Searcher
-    participant Rel as Builder
-    participant Pool as AMM
-    participant Ex as BackrunExecutor
-    participant CB as coinbase
-
-    S->>Rel: bundle[victimTx, backrunTx]
-    Rel->>Vic: victimTx (orden 1)
-    Vic->>Pool: swap grande
-    Pool-->>Vic: amountOut
-    Rel->>Ex: backrunTx (orden 2)
-    Ex->>Pool: swap captura spread
-    Ex->>CB: tip
-    Ex->>Ex: profit check
-    Ex-->>S: EV positivo o revert
-```
-
----
-
-## Secuencia — sandwich lab (solo tests)
+## Secuencia — sandwich lab (midHook)
 
 ```mermaid
 sequenceDiagram
     actor S as Searcher
     participant Ex as SandwichExecutor
+    participant Hook as ISandwichMidHook
     participant Pool as MockAMM
 
-    S->>Ex: sandwich(front, back, minProfit, tip)
-    Ex->>Pool: front-run buy
-    Note over Ex,Pool: Victim simulada (unit) o tx media en bundle
-    Ex->>Pool: back-run sell
-    Ex->>Ex: tip + NegativeEV check
+    S->>Ex: sandwich(front, back, hook, victimData, minProfit, tip)
+    Ex->>Pool: front-run
+    Ex->>Hook: afterFront(victimData)
+    Hook->>Pool: victim swap
+    Ex->>Pool: back-run
+    Ex->>Ex: payAssembly + takeProfit
     alt rentable
         Ex-->>S: profit
     else no rentable

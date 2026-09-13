@@ -1,6 +1,6 @@
 # Diagrama de clases — MEV & HFT Trading Infrastructure
 
-Vista estructural de contratos, librerías e interfaces (módulo 15, **diseño v1**).
+Vista estructural de contratos, librerías e interfaces (módulo 15, **v1 implementado**).
 
 ## Diagrama (Mermaid)
 
@@ -13,21 +13,39 @@ classDiagram
         +execute(route, amountIn, minProfit, tipWei) uint256 profit
         +authorizedSearcher() address
         +setSearcher(searcher)
+        +withdraw(token, to, amount)
     }
 
     class IBackrunExecutor {
         <<interface>>
         +backrun(route, amountIn, minProfit, tipWei) uint256 profit
+        +authorizedSearcher() address
+        +setSearcher(searcher)
+        +withdraw(token, to, amount)
     }
 
     class ISandwichExecutor {
         <<interface>>
-        +sandwich(front, back, minProfit, tipWei) uint256 profit
+        +sandwich(front, back, midHook, midData, minProfit, tipWei) uint256 profit
+        +authorizedSearcher() address
+        +setSearcher(searcher)
+        +withdraw(token, to, amount)
+    }
+
+    class ISandwichMidHook {
+        <<interface>>
+        +afterFront(data)
     }
 
     class IDexRouter {
         <<interface>>
-        +swapExactTokensForTokens(amountIn, amountOutMin, path, to) amounts
+        +swapExactTokensForTokens(amountIn, amountOutMin, path, to) uint256
+    }
+
+    class ISimpleAMM {
+        <<interface>>
+        +swap(tokenIn, amountIn, minOut, to) uint256
+        +getAmountOut(amountIn, tokenIn) uint256
     }
 
     class MevErrors {
@@ -48,6 +66,7 @@ classDiagram
         +snapshot(token) uint256
         +requireProfit(initial, final_, minProfit)
         +netProfit(initial, final_) uint256
+        +takeProfit(initial, final_, minProfit) uint256
     }
 
     class CoinbaseTip {
@@ -58,8 +77,15 @@ classDiagram
 
     class CalldataCodec {
         <<library>>
+        +encodeRoute(r) bytes
         +decodeRoute(data) Route
+        +encodeAmounts(amountIn, minProfit) bytes
         +decodeAmounts(data) uint256, uint256
+    }
+
+    class MevSwapLib {
+        <<library>>
+        +swapRoundTrip(tokenIn, tokenOut, routerA, routerB, amountIn, minA, minB) uint256 mid
     }
 
     class Route {
@@ -72,11 +98,19 @@ classDiagram
         +amountOutMinB uint256
     }
 
+    class SandwichLeg {
+        <<struct>>
+        +router address
+        +tokenIn address
+        +tokenOut address
+        +amountIn uint256
+        +amountOutMin uint256
+    }
+
     class AtomicArbitrageSolver {
         <<contract>>
-        +owner address
         +authorizedSearcher address
-        +execute(route, amountIn, minProfit, tipWei) profit
+        +execute(...) profit
         +setSearcher(searcher)
         +withdraw(token, to, amount)
     }
@@ -84,13 +118,17 @@ classDiagram
     class BackrunExecutor {
         <<contract>>
         +authorizedSearcher address
-        +backrun(route, amountIn, minProfit, tipWei) profit
+        +backrun(...) profit
+        +setSearcher(searcher)
+        +withdraw(token, to, amount)
     }
 
     class SandwichExecutor {
         <<contract>>
         +authorizedSearcher address
-        +sandwich(frontParams, backParams, minProfit, tipWei) profit
+        +sandwich(...) profit
+        +setSearcher(searcher)
+        +withdraw(token, to, amount)
     }
 
     class MockAMM {
@@ -98,61 +136,69 @@ classDiagram
         +reserve0 uint256
         +reserve1 uint256
         +setReserves(r0, r1)
-        +swap(amountIn, tokenIn) amountOut
+        +swap(...) amountOut
     }
 
     class MockRouter {
         <<contract mock>>
+        +amm ISimpleAMM
         +swapExactTokensForTokens(...)
     }
 
     class MockERC20 {
         <<contract mock>>
         +mint(to, amount)
-        +burn(from, amount)
+    }
+
+    class RejectETH {
+        <<contract mock>>
     }
 
     IAtomicArbitrageSolver <|.. AtomicArbitrageSolver : implements
     IBackrunExecutor <|.. BackrunExecutor : implements
     ISandwichExecutor <|.. SandwichExecutor : implements
     IDexRouter <|.. MockRouter : implements
+    ISimpleAMM <|.. MockAMM : implements
 
-    AtomicArbitrageSolver ..> ProfitLib : uses
-    AtomicArbitrageSolver ..> CoinbaseTip : uses
-    AtomicArbitrageSolver ..> CalldataCodec : uses
+    AtomicArbitrageSolver ..> ProfitLib : takeProfit
+    AtomicArbitrageSolver ..> CoinbaseTip : payAssembly
+    AtomicArbitrageSolver ..> MevSwapLib : swapRoundTrip
     AtomicArbitrageSolver ..> MevErrors : reverts
-    AtomicArbitrageSolver --> IDexRouter : swaps
+    AtomicArbitrageSolver --> Route : calldata
 
-    BackrunExecutor ..> ProfitLib : uses
-    BackrunExecutor ..> CoinbaseTip : uses
+    BackrunExecutor ..> ProfitLib : takeProfit
+    BackrunExecutor ..> CoinbaseTip : payAssembly
+    BackrunExecutor ..> MevSwapLib : swapRoundTrip
     BackrunExecutor ..> MevErrors : reverts
-    BackrunExecutor --> IDexRouter : swaps
 
-    SandwichExecutor ..> ProfitLib : uses
-    SandwichExecutor ..> CoinbaseTip : uses
+    SandwichExecutor ..> ProfitLib : takeProfit
+    SandwichExecutor ..> CoinbaseTip : payAssembly
     SandwichExecutor ..> MevErrors : reverts
-    SandwichExecutor --> IDexRouter : front/back
+    SandwichExecutor --> SandwichLeg : front/back
+    SandwichExecutor ..> ISandwichMidHook : afterFront lab
 
-    CalldataCodec ..> Route : decodes
+    MevSwapLib ..> IDexRouter : swaps
+    CalldataCodec ..> Route : encode/decode
     MockRouter --> MockAMM : routes
-    AtomicArbitrageSolver --> MockERC20 : balances
 ```
 
 ## Relaciones clave
 
 | Relación | Motivo |
 |----------|--------|
-| Solver/Executors → `ProfitLib` | Snapshot y enforce de `minProfit` / `NegativeEV` |
-| Solver/Executors → `CoinbaseTip` | Bribe al builder vía `block.coinbase` |
-| Solver/Executors → `IDexRouter` | Swaps atómicos contra pools/routers |
-| `CalldataCodec` → `Route` | Params compactos decodeados en Yul |
-| Mocks AMM/Router | Simular imbalance sin mainnet |
+| Solver/Backrun → `MevSwapLib` | Round-trip 2-router gas-optimizado |
+| Solver/Executors → `ProfitLib.takeProfit` | Snapshot + `minProfit` en una pasada |
+| Solver/Executors → `CoinbaseTip.payAssembly` | Tip Yul a `block.coinbase` |
+| Sandwich → `ISandwichMidHook` | Victim simulada en lab (misma tx) |
+| `CalldataCodec` → `Route` | Packed 144 B para builders off-chain |
+| Mocks AMM/Router/`RejectETH` | Imbalance + tip fallido en tests |
 
 ## Decisiones de diseño (v1)
 
-- Tres ejecutores separados (arb / backrun / sandwich) para aislar superficie de ataque y tests.
-- Un solo `authorizedSearcher` por contrato (Ownable2Step puede rotarlo).
-- Tip **dentro** de la misma tx atómica: si falla el profit check, revierte también el tip.
-- Sandwich limitado a **lab/fork**; no se documenta runbook de explotación en mainnet.
-- Bundles Flashbots viven off-chain (scripts Foundry); on-chain solo la ejecución tipada.
+- Tres ejecutores separados (arb / backrun / sandwich) para aislar superficie y tests.
+- `Ownable2Step` + `authorizedSearcher` por contrato.
+- Tip **dentro** de la misma tx: si falla `takeProfit`, revierte también el tip.
+- Sandwich **lab/fork only** vía midHook; no runbook de mainnet.
+- Sin `forceApprove(0)` post-swap (tradeoff gas; routers trusted) — ver [`GAS.md`](./GAS.md).
+- Bundles Flashbots off-chain (`SimulateBundle.s.sol`); on-chain solo ejecución.
 - Frontend Next.js: post-v1.
