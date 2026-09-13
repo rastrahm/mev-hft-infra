@@ -1,6 +1,6 @@
 # Planificación — Módulo 15: MEV & HFT Trading Infrastructure
 
-**Estado:** Fases **0–1** ✅ completadas. Fases **2–7** ⏳ pendientes.  
+**Estado:** Fases **0–2** ✅ completadas. Fases **3–7** ⏳ pendientes.  
 **Regla de avance:** cada fase requiere **autorización explícita** del responsable antes de empezar (*“autorizo Fase N”* o equivalente).
 
 ---
@@ -159,7 +159,7 @@ error ZeroAmount();
 |------|--------|--------|--------------|
 | 0 | Setup Foundry + estructura + deps | ✅ Completada | ✅ Autorizada |
 | 1 | Errors + libs (`ProfitLib`, `CoinbaseTip`, `CalldataCodec`) | ✅ Completada | ✅ Autorizada |
-| 2 | `AtomicArbitrageSolver` (unit + mocks) | ⏳ Pendiente | ❌ |
+| 2 | `AtomicArbitrageSolver` (unit + mocks) | ✅ Completada | ✅ Autorizada |
 | 3 | `BackrunExecutor` + tip coinbase | ⏳ Pendiente | ❌ |
 | 4 | `SandwichExecutor` (lab) + Unauthorized | ⏳ Pendiente | ❌ |
 | 5 | Revert-on-unprofitable + fuzz tip/slippage/volume | ⏳ Pendiente | ❌ |
@@ -214,7 +214,7 @@ error ZeroAmount();
 
 ---
 
-### Fase 2 — AtomicArbitrageSolver
+### Fase 2 — AtomicArbitrageSolver ✅
 
 **Objetivo:** arbitraje 2-AMM atómico con capital de riesgo cero.
 
@@ -223,6 +223,14 @@ error ZeroAmount();
 3. Flujo: snapshot balance → swaps → tip opcional → verify → CEI.
 
 **Criterio de salida:** unit + unauthorized en verde.
+
+**Hecho (2026-09-13):**
+- Interfaces: `IAtomicArbitrageSolver`, `IDexRouter`, `ISimpleAMM`.
+- Mocks: `MockAMM` (x*y=k 0.3%), `MockRouter` (path len 2).
+- `AtomicArbitrageSolver`: Ownable2Step + ReentrancyGuard; `execute` / `setSearcher` / `withdraw`.
+- Flujo: auth → snapshot `tokenIn` → swap A → swap B → `CoinbaseTip.payAssembly` → `requireProfit`.
+- Tests: rentable, tip, NegativeEV (sin tip residual), unauthorized, zero amount, tip reject, withdraw, events.
+- **`forge test` → 34 PASS**.
 
 ---
 
@@ -346,6 +354,6 @@ error ZeroAmount();
 
 ## 12. Próximo paso
 
-Esperar autorización explícita: **“autorizo Fase 2”** para `AtomicArbitrageSolver` (unit + mocks AMM/router).
+Esperar autorización explícita: **“autorizo Fase 3”** para `BackrunExecutor` + tip coinbase post-victim.
 
 **Nota:** usar `~/.foundry/bin/forge` (o anteponer `$HOME/.foundry/bin` al `PATH`); el `forge` de nvm/npm no es Foundry.

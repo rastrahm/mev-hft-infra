@@ -13,4 +13,4 @@
 
 **Regla:** cada fase de implementación requiere autorización explícita antes de escribir código.
 
-**Estado actual:** Fases **0–1** ✅. Fases **2–7** ⏳.
+**Estado actual:** Fases **0–2** ✅. Fases **3–7** ⏳.
