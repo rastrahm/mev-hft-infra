@@ -1,6 +1,6 @@
 # Planificación — Módulo 15: MEV & HFT Trading Infrastructure
 
-**Estado:** Fases **0–3** ✅ completadas. Fases **4–7** ⏳ pendientes.  
+**Estado:** Fases **0–4** ✅ completadas. Fases **5–7** ⏳ pendientes.  
 **Regla de avance:** cada fase requiere **autorización explícita** del responsable antes de empezar (*“autorizo Fase N”* o equivalente).
 
 ---
@@ -161,7 +161,7 @@ error ZeroAmount();
 | 1 | Errors + libs (`ProfitLib`, `CoinbaseTip`, `CalldataCodec`) | ✅ Completada | ✅ Autorizada |
 | 2 | `AtomicArbitrageSolver` (unit + mocks) | ✅ Completada | ✅ Autorizada |
 | 3 | `BackrunExecutor` + tip coinbase | ✅ Completada | ✅ Autorizada |
-| 4 | `SandwichExecutor` (lab) + Unauthorized | ⏳ Pendiente | ❌ |
+| 4 | `SandwichExecutor` (lab) + Unauthorized | ✅ Completada | ✅ Autorizada |
 | 5 | Revert-on-unprofitable + fuzz tip/slippage/volume | ⏳ Pendiente | ❌ |
 | 6 | Fork mainnet + `SimulateBundle` | ⏳ Pendiente | ❌ |
 | 7 | Gas Yul vs Solidity + Deploy + NatSpec / SWC | ⏳ Pendiente | ❌ |
@@ -252,7 +252,7 @@ error ZeroAmount();
 
 ---
 
-### Fase 4 — SandwichExecutor (lab)
+### Fase 4 — SandwichExecutor (lab) ✅
 
 **Objetivo:** front + back en una sola envelope atómica (solo tests/lab).
 
@@ -261,6 +261,13 @@ error ZeroAmount();
 3. Documentar riesgos éticos/legales: **solo fork/lab**, no runbook de ataque en mainnet.
 
 **Criterio de salida:** suite Unauthorized + sandwich lab en verde.
+
+**Hecho (2026-09-13):**
+- `ISandwichExecutor` / `SandwichLeg` / `ISandwichMidHook` + `SandwichExecutor` (lab only en NatSpec).
+- Flujo: front → `midHook.afterFront` (victim simulada) → back → tip → `requireProfit`.
+- `test/SandwichExecutor.t.sol`: rentable+victim, tip, NegativeEV sin victim (sin bribe), auth, tip reject.
+- `test/Unauthorized.t.sol`: `UnauthorizedSearcher` en arb / backrun / sandwich.
+- **`forge test` → 55 PASS**.
 
 ---
 
@@ -360,6 +367,6 @@ error ZeroAmount();
 
 ## 12. Próximo paso
 
-Esperar autorización explícita: **“autorizo Fase 4”** para `SandwichExecutor` (lab) + guards unauthorized.
+Esperar autorización explícita: **“autorizo Fase 5”** para revert-on-unprofitable consolidado + fuzz tip/slippage/volume.
 
 **Nota:** usar `~/.foundry/bin/forge` (o anteponer `$HOME/.foundry/bin` al `PATH`); el `forge` de nvm/npm no es Foundry.
