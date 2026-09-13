@@ -16,8 +16,7 @@ import {CoinbaseTip} from "./libraries/CoinbaseTip.sol";
  * @title SandwichExecutor
  * @notice Sandwich lab atómico: front-run → hook victim → back-run → tip → `minProfit`.
  * @dev **SOLO LAB / FORK / TESTS.** No documenta ni habilita explotación en mainnet.
- *      El `midHook` simula la victim tx dentro de la misma llamada (en producción sería otra tx del bundle).
- *      Tip solo persiste si el profit check pasa. CEI + ReentrancyGuard.
+ *      Gas: un `path` reutilizado; sin `forceApprove(0)`; `takeProfit` en una pasada.
  */
 contract SandwichExecutor is ISandwichExecutor, Ownable2Step, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -48,30 +47,35 @@ contract SandwichExecutor is ISandwichExecutor, Ownable2Step, ReentrancyGuard {
         _validateLeg(front);
         _validateLegTokens(back);
 
-        uint256 initial = ProfitLib.snapshot(front.tokenIn);
+        address profitToken = front.tokenIn;
+        uint256 initial = ProfitLib.snapshot(profitToken);
 
-        // --- Front-run ---
-        uint256 midBal = _swapLeg(front, front.amountIn);
+        address[] memory path = new address[](2);
+        path[0] = front.tokenIn;
+        path[1] = front.tokenOut;
+
+        IERC20(front.tokenIn).forceApprove(front.router, front.amountIn);
+        uint256 midBal =
+            IDexRouter(front.router).swapExactTokensForTokens(front.amountIn, front.amountOutMin, path, address(this));
         if (midBal == 0) revert MevErrors.InsufficientOutput();
 
-        // --- Victim simulada (lab) ---
         if (midHook != address(0)) {
             ISandwichMidHook(midHook).afterFront(midData);
         }
 
-        // --- Back-run ---
         uint256 backIn = back.amountIn == 0 ? IERC20(back.tokenIn).balanceOf(address(this)) : back.amountIn;
         if (backIn == 0) revert MevErrors.ZeroAmount();
         if (back.tokenIn != front.tokenOut || back.tokenOut != front.tokenIn) revert MevErrors.InvalidRoute();
-        _swapLeg(back, backIn);
+
+        path[0] = back.tokenIn;
+        path[1] = back.tokenOut;
+        IERC20(back.tokenIn).forceApprove(back.router, backIn);
+        IDexRouter(back.router).swapExactTokensForTokens(backIn, back.amountOutMin, path, address(this));
 
         CoinbaseTip.payAssembly(tipWei);
 
-        uint256 final_ = ProfitLib.snapshot(front.tokenIn);
-        ProfitLib.requireProfit(initial, final_, minProfit);
-        profit = ProfitLib.netProfit(initial, final_);
-
-        emit SandwichExecuted(msg.sender, front.tokenIn, profit, tipWei);
+        profit = ProfitLib.takeProfit(initial, ProfitLib.snapshot(profitToken), minProfit);
+        emit SandwichExecuted(msg.sender, profitToken, profit, tipWei);
     }
 
     /// @inheritdoc ISandwichExecutor
@@ -97,22 +101,6 @@ contract SandwichExecutor is ISandwichExecutor, Ownable2Step, ReentrancyGuard {
      * @notice Permite fondear ETH para tips al builder.
      */
     receive() external payable {}
-
-    /**
-     * @dev Ejecuta un hop vía `IDexRouter`.
-     * @param leg Parámetros del hop.
-     * @param amountIn Input efectivo.
-     * @return amountOut Output recibido.
-     */
-    function _swapLeg(SandwichLeg calldata leg, uint256 amountIn) private returns (uint256 amountOut) {
-        address[] memory path = new address[](2);
-        path[0] = leg.tokenIn;
-        path[1] = leg.tokenOut;
-
-        IERC20(leg.tokenIn).forceApprove(leg.router, amountIn);
-        amountOut = IDexRouter(leg.router).swapExactTokensForTokens(amountIn, leg.amountOutMin, path, address(this));
-        IERC20(leg.tokenIn).forceApprove(leg.router, 0);
-    }
 
     /**
      * @dev Valida front leg completo (incl. amountIn > 0).

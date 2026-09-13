@@ -1,0 +1,5 @@
+MevGasTest:testGas_arb_execute_noTip() (gas: 227631)
+MevGasTest:testGas_arb_execute_withTip() (gas: 253307)
+MevGasTest:testGas_backrun_execute_noTip() (gas: 227684)
+MevGasTest:testGas_tip_pay() (gas: 37508)
+MevGasTest:testGas_tip_payAssembly() (gas: 37293)

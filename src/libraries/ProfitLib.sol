@@ -46,4 +46,20 @@ library ProfitLib {
             return final_ - initial;
         }
     }
+
+    /**
+     * @notice Requiere profit mínimo y devuelve el delta en una sola pasada.
+     * @param initial Balance pre-ejecución.
+     * @param final_ Balance post-ejecución.
+     * @param minProfit Beneficio mínimo exigido.
+     * @return profit `final_ - initial`.
+     * @dev Gas: evita doble llamada `requireProfit` + `netProfit` en hot path.
+     */
+    function takeProfit(uint256 initial, uint256 final_, uint256 minProfit) internal pure returns (uint256 profit) {
+        if (final_ < initial) revert MevErrors.NegativeEV();
+        unchecked {
+            profit = final_ - initial;
+        }
+        if (profit < minProfit) revert MevErrors.NegativeEV();
+    }
 }

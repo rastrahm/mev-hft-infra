@@ -55,6 +55,16 @@ contract ProfitLibTest is Test {
         harness.netProfit(100, 90);
     }
 
+    function test_takeProfit_ok() public view {
+        assertEq(harness.takeProfit(100, 175, 50), 75);
+        assertEq(harness.takeProfit(50, 50, 0), 0);
+    }
+
+    function test_takeProfit_revertsBelowMin() public {
+        vm.expectRevert(MevErrors.NegativeEV.selector);
+        harness.takeProfit(100, 140, 50);
+    }
+
     function testFuzz_requireProfit(uint128 initial, uint128 delta, uint128 minProfit) public view {
         uint256 final_ = uint256(initial) + uint256(delta);
         if (delta >= minProfit) {

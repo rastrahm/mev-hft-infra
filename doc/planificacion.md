@@ -1,6 +1,6 @@
 # Planificación — Módulo 15: MEV & HFT Trading Infrastructure
 
-**Estado:** Fases **0–6** ✅ completadas. Fase **7** ⏳ pendiente.  
+**Estado:** Fases **0–7** ✅ completadas (módulo v1 cerrado).  
 **Regla de avance:** cada fase requiere **autorización explícita** del responsable antes de empezar (*“autorizo Fase N”* o equivalente).
 
 ---
@@ -164,7 +164,7 @@ error ZeroAmount();
 | 4 | `SandwichExecutor` (lab) + Unauthorized | ✅ Completada | ✅ Autorizada |
 | 5 | Revert-on-unprofitable + fuzz tip/slippage/volume | ✅ Completada | ✅ Autorizada |
 | 6 | Fork mainnet + `SimulateBundle` | ✅ Completada | ✅ Autorizada |
-| 7 | Gas Yul vs Solidity + Deploy + NatSpec / SWC | ⏳ Pendiente | ❌ |
+| 7 | Gas Yul vs Solidity + Deploy + NatSpec / SWC | ✅ Completada | ✅ Autorizada |
 
 ---
 
@@ -308,13 +308,21 @@ error ZeroAmount();
 
 ---
 
-### Fase 7 — Gas + Deploy + hardening
+### Fase 7 — Gas + Deploy + hardening ✅
 
 1. `Deploy.s.sol` (solver + executor + mocks demo).
 2. `test/gas/Mev.gas.t.sol`: path assembly vs Solidity estándar.
 3. NatSpec completo; `doc/SWC-AUDIT.md` y `doc/GAS.md`.
 
 **Criterio de salida:** deploy local + docs seguridad/gas.
+
+**Hecho (2026-09-13):**
+- Optimización: `MevSwapLib` (path reutilizado, sin `approve(0)`), `ProfitLib.takeProfit`, tip `payAssembly`.
+- `test/gas/Mev.gas.t.sol` + `.gas-snapshot` (tip Yul −215 vs `.call`; arb noTip ~227.6k).
+- `script/Deploy.s.sol` — arb + backrun + sandwich + mocks fondeados.
+- `doc/SWC-AUDIT.md` — matriz SWC-100–136 (estilo módulo 14), **0 vulnerables**, 5 informativos.
+- `doc/GAS.md` — baseline + tradeoffs.
+- **`forge test` → 71 PASS + 3 SKIP**.
 
 ---
 
@@ -335,15 +343,15 @@ error ZeroAmount();
 
 ## 9. Seguridad (checklist vivo)
 
-- [ ] CEI en solvers/executors; `ReentrancyGuard` donde hay callbacks externos.
-- [ ] SafeERC20; ETH a coinbase vía `.call` o assembly con chequeo de success.
-- [ ] Custom errors del módulo (`UnauthorizedSearcher`, `NegativeEV`, …).
-- [ ] Profit check **después** de trades y **antes** de considerar la tx exitosa; tip no queda pagado si revierte.
-- [ ] Solo searcher/relayer autorizado.
-- [ ] Sin floating pragma; NatSpec en APIs públicas.
+- [x] CEI en solvers/executors; `ReentrancyGuard` donde hay callbacks externos.
+- [x] SafeERC20; ETH a coinbase vía `.call` o assembly con chequeo de success.
+- [x] Custom errors del módulo (`UnauthorizedSearcher`, `NegativeEV`, …).
+- [x] Profit check **después** de trades y **antes** de considerar la tx exitosa; tip no queda pagado si revierte.
+- [x] Solo searcher/relayer autorizado.
+- [x] Sin floating pragma; NatSpec en APIs públicas.
 - [x] Fuzz de tip, slippage y volúmenes.
 - [x] Tests de revert-on-unprofitable sin bribe residual.
-- [ ] (Fase 7) SWC-AUDIT + gas.
+- [x] (Fase 7) SWC-AUDIT + gas.
 - [x] Nunca versionar claves privadas / keystores (ver `.gitignore`).
 
 ---
@@ -356,8 +364,8 @@ error ZeroAmount();
 | `diagrama-de-clases.md` | Estructura y relaciones | ✅ |
 | `diagrama-de-flujo.md` | Flujos de decisión | ✅ |
 | `flujograma.md` | Flujos actor–sistema e2e | ✅ |
-| `SWC-AUDIT.md` | Matriz SWC (Fase 7) | ⏳ |
-| `GAS.md` | Benchmarks (Fase 7) | ⏳ |
+| `SWC-AUDIT.md` | Matriz SWC (Fase 7) | ✅ |
+| `GAS.md` | Benchmarks (Fase 7) | ✅ |
 | `README.md` | Índice del módulo | ✅ |
 
 ---
@@ -370,14 +378,14 @@ error ZeroAmount();
 4. [x] Guard `UnauthorizedSearcher` en ejecución.
 5. [x] Fork test de arbitraje con imbalance simulado.
 6. [x] Fuzz de tip %, slippage y volúmenes.
-7. [ ] Gas profiling assembly vs Solidity.
+7. [x] Gas profiling assembly vs Solidity.
 8. [x] Custom errors + NatSpec.
-9. [ ] `doc/SWC-AUDIT.md` sin vulnerabilidades en alcance v1.
+9. [x] `doc/SWC-AUDIT.md` sin vulnerabilidades en alcance v1.
 
 ---
 
 ## 12. Próximo paso
 
-Esperar autorización explícita: **“autorizo Fase 7”** para gas Yul vs Solidity + Deploy + SWC/GAS docs.
+**Módulo v1 cerrado.** Extensiones opcionales (v2): Permit2 / clear approve, flash-loan capital (ERC-3156), deadline `BundleExpired`, invariantes Foundry.
 
 **Nota:** usar `~/.foundry/bin/forge` (o anteponer `$HOME/.foundry/bin` al `PATH`); el `forge` de nvm/npm no es Foundry.

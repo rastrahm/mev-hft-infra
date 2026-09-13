@@ -7,10 +7,10 @@ import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IAtomicArbitrageSolver} from "./interfaces/IAtomicArbitrageSolver.sol";
-import {IDexRouter} from "./interfaces/IDexRouter.sol";
 import {MevErrors} from "./errors/MevErrors.sol";
 import {ProfitLib} from "./libraries/ProfitLib.sol";
 import {CoinbaseTip} from "./libraries/CoinbaseTip.sol";
+import {MevSwapLib} from "./libraries/MevSwapLib.sol";
 import {Route} from "./libraries/CalldataCodec.sol";
 
 /**
@@ -18,7 +18,7 @@ import {Route} from "./libraries/CalldataCodec.sol";
  * @notice Arbitraje 2-router atómico: swap A → swap B → tip coinbase → enforce `minProfit`.
  * @dev Solo `authorizedSearcher`. Capital en el contrato (tokens + ETH para tip).
  *      Si EV < `minProfit` o el tip falla, revierte todo (sin bribe residual).
- *      CEI + `ReentrancyGuard`; ERC-20 vía SafeERC20; tip vía `CoinbaseTip.payAssembly`.
+ *      CEI + `ReentrancyGuard`; tip `payAssembly`; round-trip vía `MevSwapLib` (path reutilizado).
  */
 contract AtomicArbitrageSolver is IAtomicArbitrageSolver, Ownable2Step, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -47,35 +47,23 @@ contract AtomicArbitrageSolver is IAtomicArbitrageSolver, Ownable2Step, Reentran
         if (amountIn == 0) revert MevErrors.ZeroAmount();
         _validateRoute(route);
 
-        // Checks-Effects-Interactions: snapshot (check) → swaps/tip (interactions) → profit verify
-        uint256 initial = ProfitLib.snapshot(route.tokenIn);
+        address tokenIn = route.tokenIn;
+        uint256 initial = ProfitLib.snapshot(tokenIn);
 
-        address[] memory pathA = new address[](2);
-        pathA[0] = route.tokenIn;
-        pathA[1] = route.tokenOut;
-
-        IERC20(route.tokenIn).forceApprove(route.routerA, amountIn);
-        uint256 mid =
-            IDexRouter(route.routerA).swapExactTokensForTokens(amountIn, route.amountOutMinA, pathA, address(this));
-        IERC20(route.tokenIn).forceApprove(route.routerA, 0);
-
-        if (mid == 0) revert MevErrors.InsufficientOutput();
-
-        address[] memory pathB = new address[](2);
-        pathB[0] = route.tokenOut;
-        pathB[1] = route.tokenIn;
-
-        IERC20(route.tokenOut).forceApprove(route.routerB, mid);
-        IDexRouter(route.routerB).swapExactTokensForTokens(mid, route.amountOutMinB, pathB, address(this));
-        IERC20(route.tokenOut).forceApprove(route.routerB, 0);
+        MevSwapLib.swapRoundTrip(
+            tokenIn,
+            route.tokenOut,
+            route.routerA,
+            route.routerB,
+            amountIn,
+            route.amountOutMinA,
+            route.amountOutMinB
+        );
 
         CoinbaseTip.payAssembly(tipWei);
 
-        uint256 final_ = ProfitLib.snapshot(route.tokenIn);
-        ProfitLib.requireProfit(initial, final_, minProfit);
-        profit = ProfitLib.netProfit(initial, final_);
-
-        emit ArbitrageExecuted(msg.sender, route.tokenIn, amountIn, profit, tipWei);
+        profit = ProfitLib.takeProfit(initial, ProfitLib.snapshot(tokenIn), minProfit);
+        emit ArbitrageExecuted(msg.sender, tokenIn, amountIn, profit, tipWei);
     }
 
     /// @inheritdoc IAtomicArbitrageSolver

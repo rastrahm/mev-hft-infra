@@ -22,6 +22,10 @@ contract ProfitLibHarness {
         return ProfitLib.netProfit(initial, final_);
     }
 
+    function takeProfit(uint256 initial, uint256 final_, uint256 minProfit) external pure returns (uint256) {
+        return ProfitLib.takeProfit(initial, final_, minProfit);
+    }
+
     receive() external payable {}
 }
 
