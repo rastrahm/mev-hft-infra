@@ -12,7 +12,7 @@ import {MevErrors} from "../errors/MevErrors.sol";
  * @notice Round-trip 2-router optimizado para hot path MEV (arb / backrun).
  * @dev Gas: un solo `address[]` reutilizado; cache de addresses en stack;
  *      sin `forceApprove(0)` post-swap (routers de confianza del searcher; allowance residual OK en lab).
- *      Tradeoff documentado en `doc/GAS.md`.
+ *      Tradeoff documentado en `doc/GAS-ES.md`.
  */
 library MevSwapLib {
     using SafeERC20 for IERC20;

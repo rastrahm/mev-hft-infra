@@ -52,7 +52,7 @@ Stack: **Foundry + Solidity `0.8.24`** (pragma fijo). Frontend Next.js queda **f
 - Ejecución atómica: `ProfitLib.takeProfit` → revert total si EV negativo (`NegativeEV`).
 - Tip: `CoinbaseTip.payAssembly` a `block.coinbase` **antes** del profit check (si falla EV, revierte el tip).
 - Guard: `msg.sender == authorizedSearcher` → `UnauthorizedSearcher()`.
-- Gas: `MevSwapLib` + tip Yul + `takeProfit` (ver [`GAS.md`](./GAS.md)).
+- Gas: `MevSwapLib` + tip Yul + `takeProfit` (ver [`GAS-ES.md`](./GAS-ES.md)).
 
 ### Next.js (`nextjs.cursorrules`) — post-v1
 
@@ -65,15 +65,18 @@ Stack: **Foundry + Solidity `0.8.24`** (pragma fijo). Frontend Next.js queda **f
 
 ```
 15-mev-hft-infra/
-├── README.md
+├── README.md                      # índice de idioma
+├── README-ES.md / README-EN.md
 ├── doc/
-│   ├── README.md
-│   ├── planificacion.md
-│   ├── diagrama-de-clases.md
-│   ├── diagrama-de-flujo.md
-│   ├── flujograma.md
-│   ├── SWC-AUDIT.md
-│   └── GAS.md
+│   ├── README.md                  # índice de idioma
+│   ├── README-{ES,EN}.md
+│   ├── planificacion-{ES,EN}.md
+│   ├── ENTENDIMIENTO-{ES,EN}.md
+│   ├── diagrama-de-clases-{ES,EN}.md
+│   ├── diagrama-de-flujo-{ES,EN}.md
+│   ├── flujograma-{ES,EN}.md
+│   ├── SWC-AUDIT-{ES,EN}.md
+│   └── GAS-{ES,EN}.md
 ├── src/
 │   ├── AtomicArbitrageSolver.sol
 │   ├── BackrunExecutor.sol
@@ -319,7 +322,7 @@ error ZeroAmount();
 
 1. `Deploy.s.sol` (solver + executor + mocks demo).
 2. `test/gas/Mev.gas.t.sol`: path assembly vs Solidity estándar.
-3. NatSpec completo; `doc/SWC-AUDIT.md` y `doc/GAS.md`.
+3. NatSpec completo; `doc/SWC-AUDIT-ES.md` y `doc/GAS-ES.md`.
 
 **Criterio de salida:** deploy local + docs seguridad/gas.
 
@@ -327,8 +330,8 @@ error ZeroAmount();
 - Optimización: `MevSwapLib` (path reutilizado, sin `approve(0)`), `ProfitLib.takeProfit`, tip `payAssembly`.
 - `test/gas/Mev.gas.t.sol` + `.gas-snapshot` (tip Yul −215 vs `.call`; arb noTip ~227.6k).
 - `script/Deploy.s.sol` — arb + backrun + sandwich + mocks fondeados.
-- `doc/SWC-AUDIT.md` — matriz SWC-100–136 (estilo módulo 14), **0 vulnerables**, 5 informativos.
-- `doc/GAS.md` — baseline + tradeoffs.
+- `doc/SWC-AUDIT-ES.md` — matriz SWC-100–136 (estilo módulo 14), **0 vulnerables**, 5 informativos.
+- `doc/GAS-ES.md` — baseline + tradeoffs.
 - **`forge test` → 71 PASS + 3 SKIP**.
 
 ---
@@ -367,13 +370,16 @@ error ZeroAmount();
 
 | Archivo | Contenido | Estado |
 |---------|-----------|--------|
-| `planificacion.md` | Este documento | ✅ |
-| `diagrama-de-clases.md` | Estructura y relaciones | ✅ |
-| `diagrama-de-flujo.md` | Flujos de decisión | ✅ |
-| `flujograma.md` | Flujos actor–sistema e2e | ✅ |
-| `SWC-AUDIT.md` | Matriz SWC (Fase 7) | ✅ |
-| `GAS.md` | Benchmarks (Fase 7) | ✅ |
-| `README.md` | Índice del módulo | ✅ |
+| `planificacion-ES.md` | Este documento | ✅ |
+| `ENTENDIMIENTO-ES.md` | Decisiones, lógica y gas | ✅ |
+| `diagrama-de-clases-ES.md` | Estructura y relaciones | ✅ |
+| `diagrama-de-flujo-ES.md` | Flujos de decisión | ✅ |
+| `flujograma-ES.md` | Flujos actor–sistema e2e | ✅ |
+| `SWC-AUDIT-ES.md` | Matriz SWC (Fase 7) | ✅ |
+| `GAS-ES.md` | Benchmarks (Fase 7) | ✅ |
+| `README-ES.md` | Índice de la documentación | ✅ |
+
+Cada archivo tiene su traducción al inglés con sufijo `-EN.md`; `README.md` es el índice de idioma.
 
 ---
 
@@ -387,7 +393,7 @@ error ZeroAmount();
 6. [x] Fuzz de tip %, slippage y volúmenes.
 7. [x] Gas profiling assembly vs Solidity.
 8. [x] Custom errors + NatSpec.
-9. [x] `doc/SWC-AUDIT.md` sin vulnerabilidades en alcance v1.
+9. [x] `doc/SWC-AUDIT-ES.md` sin vulnerabilidades en alcance v1.
 
 ---
 

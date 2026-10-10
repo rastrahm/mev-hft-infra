@@ -75,4 +75,4 @@ Env: `PRIVATE_KEY`, `SEARCHER`. Ver `script/Deploy.s.sol` y `.env.example`.
 
 Sim bundle: `forge script script/SimulateBundle.s.sol:SimulateBundle -vvv`
 
-README: [`../README.md`](../README.md) · Índice docs: [`README.md`](./README.md) · SWC: [`SWC-AUDIT.md`](./SWC-AUDIT.md)
+README: [`../README-ES.md`](../README-ES.md) · Índice docs: [`README-ES.md`](./README-ES.md) · SWC: [`SWC-AUDIT-ES.md`](./SWC-AUDIT-ES.md)

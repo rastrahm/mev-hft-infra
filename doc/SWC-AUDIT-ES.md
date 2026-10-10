@@ -2,7 +2,7 @@
 
 Verificación de solvers/executors MEV contra el [SWC Registry](https://swcregistry.io/) (EIP-1470) y principios del monorepo (custom errors, pragma fijo, CEI, SafeERC20, ReentrancyGuard, tip coinbase atómico).
 
-> **Nota:** El SWC Registry no se mantiene activamente desde ~2020. Complementar con [SCSVS](https://github.com/ComposableSecurity/SCSVS) y [EEA EthTrust](https://entethalliance.org/specs/ethtrust/). Estilo alineado a [`14-amm-v3-concentrated-liquidity/doc/SWC-AUDIT.md`](../../14-amm-v3-concentrated-liquidity/doc/SWC-AUDIT.md).
+> **Nota:** El SWC Registry no se mantiene activamente desde ~2020. Complementar con [SCSVS](https://github.com/ComposableSecurity/SCSVS) y [EEA EthTrust](https://entethalliance.org/specs/ethtrust/). Estilo alineado a [`14-amm-v3-concentrated-liquidity/doc/SWC-AUDIT-ES.md`](../../14-amm-v3-concentrated-liquidity/doc/SWC-AUDIT-ES.md).
 
 **Contratos auditados (prod / core):**  
 `src/AtomicArbitrageSolver.sol`, `src/BackrunExecutor.sol`, `src/SandwichExecutor.sol`,  
@@ -16,7 +16,7 @@ OpenZeppelin Contracts v5.2.0 (`Ownable2Step`, `ReentrancyGuard`, `SafeERC20`, `
 **Mocks (fuera de prod):** `MockERC20`, `MockAMM`, `MockRouter`, `RejectETH`  
 **Fecha:** 2026-09-13  
 **Referencia tests:** `test/*.t.sol`, `test/libraries/`, `test/fuzz/`, `test/fork/`, `test/gas/`  
-**Índice docs:** [`README.md`](./README.md) · README módulo: [`../README.md`](../README.md)
+**Índice docs:** [`README-ES.md`](./README-ES.md) · README módulo: [`../README-ES.md`](../README-ES.md)
 
 ---
 
@@ -98,7 +98,7 @@ El módulo **es** infraestructura MEV (arb, backrun, sandwich lab). Competencia 
 ### SWC-126 / SWC-128 — hooks y routers
 
 - `SandwichExecutor.midHook` y routers externos son elegidos por el searcher. Un hook OOG afecta al caller, no rompe el guard de reentrancy.
-- `MevSwapLib` no hace `forceApprove(0)` post-swap: allowance residual en routers **de confianza del searcher** (tradeoff de gas; ver `GAS.md`).
+- `MevSwapLib` no hace `forceApprove(0)` post-swap: allowance residual en routers **de confianza del searcher** (tradeoff de gas; ver `GAS-ES.md`).
 
 ### SWC-131 — `BundleExpired`
 
@@ -130,7 +130,7 @@ Error reservado para deadlines off-chain / fork; no usado en hot path v1.
 | Fuzz ≥ 1000 | ✅ | `Mev.fuzz.t.sol`, libs |
 | Revert-on-unprofitable sin tip | ✅ | `RevertOnUnprofitable.t.sol` |
 | Sin floating pragma | ✅ | `0.8.24` |
-| Gas profiling tip Yul vs Solidity | ✅ | `doc/GAS.md` |
+| Gas profiling tip Yul vs Solidity | ✅ | `doc/GAS-ES.md` |
 
 ---
 
@@ -154,7 +154,7 @@ Error reservado para deadlines off-chain / fork; no usado en hot path v1.
 | 2 | Sin `forceApprove(0)` post-swap | Ahorro SSTORE; routers trusted |
 | 3 | `script/Deploy.s.sol` completo | Deploy local reproducible |
 | 4 | `test/gas/Mev.gas.t.sol` + `.gas-snapshot` | Baseline tip/arb/backrun |
-| 5 | `doc/SWC-AUDIT.md` / `doc/GAS.md` | Matriz SWC-100–136 + benchmarks |
+| 5 | `doc/SWC-AUDIT-ES.md` / `doc/GAS-ES.md` | Matriz SWC-100–136 + benchmarks |
 
 ### Observaciones no bloqueantes (v2)
 
@@ -210,6 +210,6 @@ Gas snapshot (`.gas-snapshot`): arb noTip **227 631**; tip Yul **37 293** vs
 
 - [SWC Registry](https://swcregistry.io/)
 - [EIP-1470](https://eips.ethereum.org/EIPS/eip-1470)
-- Módulo 14: [`14-amm-v3-concentrated-liquidity/doc/SWC-AUDIT.md`](../../14-amm-v3-concentrated-liquidity/doc/SWC-AUDIT.md)
-- Gas: [`GAS.md`](./GAS.md)
-- Plan: [`planificacion.md`](./planificacion.md)
+- Módulo 14: [`14-amm-v3-concentrated-liquidity/doc/SWC-AUDIT-ES.md`](../../14-amm-v3-concentrated-liquidity/doc/SWC-AUDIT-ES.md)
+- Gas: [`GAS-ES.md`](./GAS-ES.md)
+- Plan: [`planificacion-ES.md`](./planificacion-ES.md)

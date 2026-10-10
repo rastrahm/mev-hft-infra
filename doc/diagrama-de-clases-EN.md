@@ -1,8 +1,8 @@
-# Diagrama de clases — MEV & HFT Trading Infrastructure
+# Class Diagram — MEV & HFT Trading Infrastructure
 
-Vista estructural de contratos, librerías e interfaces (módulo 15, **v1 implementado**).
+Structural view of contracts, libraries, and interfaces (module 15, **v1 implemented**).
 
-## Diagrama (Mermaid)
+## Diagram (Mermaid)
 
 ```mermaid
 classDiagram
@@ -182,23 +182,23 @@ classDiagram
     MockRouter --> MockAMM : routes
 ```
 
-## Relaciones clave
+## Key relationships
 
-| Relación | Motivo |
-|----------|--------|
-| Solver/Backrun → `MevSwapLib` | Round-trip 2-router gas-optimizado |
-| Solver/Executors → `ProfitLib.takeProfit` | Snapshot + `minProfit` en una pasada |
-| Solver/Executors → `CoinbaseTip.payAssembly` | Tip Yul a `block.coinbase` |
-| Sandwich → `ISandwichMidHook` | Victim simulada en lab (misma tx) |
-| `CalldataCodec` → `Route` | Packed 144 B para builders off-chain |
-| Mocks AMM/Router/`RejectETH` | Imbalance + tip fallido en tests |
+| Relationship | Reason |
+|--------------|--------|
+| Solver/Backrun → `MevSwapLib` | Gas-optimized 2-router round-trip |
+| Solver/Executors → `ProfitLib.takeProfit` | Snapshot + `minProfit` in a single pass |
+| Solver/Executors → `CoinbaseTip.payAssembly` | Yul tip to `block.coinbase` |
+| Sandwich → `ISandwichMidHook` | Simulated victim in the lab (same tx) |
+| `CalldataCodec` → `Route` | Packed 144 B for off-chain builders |
+| AMM/Router/`RejectETH` mocks | Pool imbalance + failed tip in tests |
 
-## Decisiones de diseño (v1)
+## Design decisions (v1)
 
-- Tres ejecutores separados (arb / backrun / sandwich) para aislar superficie y tests.
-- `Ownable2Step` + `authorizedSearcher` por contrato.
-- Tip **dentro** de la misma tx: si falla `takeProfit`, revierte también el tip.
-- Sandwich **lab/fork only** vía midHook; no runbook de mainnet.
-- Sin `forceApprove(0)` post-swap (tradeoff gas; routers trusted) — ver [`GAS.md`](./GAS.md).
-- Bundles Flashbots off-chain (`SimulateBundle.s.sol`); on-chain solo ejecución.
-- Frontend Next.js: post-v1.
+- Three separate executors (arb / backrun / sandwich) to isolate attack surface and tests.
+- `Ownable2Step` + `authorizedSearcher` per contract.
+- Tip **inside** the same tx: if `takeProfit` fails, the tip is reverted too.
+- Sandwich is **lab/fork only** via midHook; no mainnet runbook.
+- No `forceApprove(0)` after swaps (gas tradeoff; trusted routers) — see [`GAS-EN.md`](./GAS-EN.md).
+- Flashbots bundles are off-chain (`SimulateBundle.s.sol`); on-chain only executes.
+- Next.js frontend: post-v1.
