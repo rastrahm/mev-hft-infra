@@ -56,7 +56,7 @@ flowchart TD
     E -->|Sí| G[return]
 ```
 
-> Producción: `payAssembly` (Yul). Tests comparan vs `pay` (`.call`) — ver [`GAS.md`](./GAS.md).
+> Producción: `payAssembly` (Yul). Tests comparan vs `pay` (`.call`) — ver [`GAS-ES.md`](./GAS-ES.md).
 
 ## 4. Backrun post-victim (bundle / test)
 
